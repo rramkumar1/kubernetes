@@ -218,7 +218,7 @@ var _ = SIGDescribe("ingress Upgrade [Feature:IngressUpgrade]", func() {
 			framework.ExpectNoError(err)
 
 			testSuite := &junit.TestSuite{Name: "ingress upgrade"}
-			ingressTest := &junit.TestCase{Name: "[sig-networking] ingress-upgrade", Classname: "upgrade_tests"}
+			ingressTest := &junit.TestCase{Name: "[sig-network] ingress-upgrade", Classname: "upgrade_tests"}
 			testSuite.TestCases = append(testSuite.TestCases, ingressTest)
 
 			upgradeFunc := func() {

@@ -919,7 +919,9 @@ func (cont *GCEIngressController) CreateStaticIP(name string) string {
 	gceCloud := cont.Cloud.Provider.(*gcecloud.GCECloud)
 	addr := &compute.Address{Name: name}
 	if err := gceCloud.ReserveGlobalAddress(addr); err != nil {
+		Logf("Got to line 922: %s", err)
 		if delErr := gceCloud.DeleteGlobalAddress(name); delErr != nil {
+			Logf("Got to line 924")
 			if cont.isHTTPErrorCode(delErr, http.StatusNotFound) {
 				Logf("Static ip with name %v was not allocated, nothing to delete", name)
 			} else {
@@ -934,19 +936,21 @@ func (cont *GCEIngressController) CreateStaticIP(name string) string {
 		Failf("Failed to get newly created static ip %v: %v", name, err)
 	}
 
-	cont.staticIPName = ip.Name
-	Logf("Reserved static ip %v: %v", cont.staticIPName, ip.Address)
+	cont.staticIPNames = append(cont.staticIPNames, ip.Name)
+	Logf("Reserved static ip %v: %v", ip.Name, ip.Address)
 	return ip.Address
 }
 
 // deleteStaticIPs delets all static-ips allocated through calls to
 // CreateStaticIP.
 func (cont *GCEIngressController) deleteStaticIPs() error {
-	if cont.staticIPName != "" {
-		if err := GcloudComputeResourceDelete("addresses", cont.staticIPName, cont.Cloud.ProjectID, "--global"); err == nil {
-			cont.staticIPName = ""
-		} else {
-			return err
+	if len(cont.staticIPNames) > 0 {
+		for _, staticIPName := range cont.staticIPNames {
+			if err := GcloudComputeResourceDelete("addresses", staticIPName, cont.Cloud.ProjectID, "--global"); err == nil {
+				staticIPName = ""
+			} else {
+				return err
+			}
 		}
 	} else {
 		e2eIPs := []compute.Address{}
@@ -1249,14 +1253,15 @@ func (cont *GCEIngressController) getL7AddonUID() (string, error) {
 
 // GCEIngressController manages implementation details of Ingress on GCE/GKE.
 type GCEIngressController struct {
-	Ns           string
-	rcPath       string
-	UID          string
-	staticIPName string
-	rc           *v1.ReplicationController
-	svc          *v1.Service
-	Client       clientset.Interface
-	Cloud        CloudConfig
+	Ns     string
+	rcPath string
+	UID    string
+	// Allows for spinning up multiple ingresses.
+	staticIPNames []string
+	rc            *v1.ReplicationController
+	svc           *v1.Service
+	Client        clientset.Interface
+	Cloud         CloudConfig
 }
 
 // NewIngressTestJig instantiates struct with client
