@@ -120,7 +120,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "static-ip"), ns, map[string]string{
 				"kubernetes.io/ingress.global-static-ip-name": ns,
 				"kubernetes.io/ingress.allow-http":            "false",
-			}, map[string]string{})
+			}, map[string]string{}, true, "")
 
 			By("waiting for Ingress to come up with ip: " + ip)
 			httpClient := framework.BuildInsecureClient(framework.IngressReqTimeout)
@@ -157,7 +157,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			name := "echomap"
 			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "http"), ns, map[string]string{
 				framework.IngressClass: framework.MulticlusterIngressClassValue,
-			}, map[string]string{})
+			}, map[string]string{}, true, "")
 
 			By(fmt.Sprintf("waiting for Ingress %s to come up", name))
 			pollErr := wait.Poll(2*time.Second, framework.LoadBalancerPollTimeout, func() (bool, error) {
@@ -229,7 +229,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 		It("should be able to switch between IG and NEG modes", func() {
 			var err error
 			By("Create a basic HTTP ingress using NEG")
-			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{})
+			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{}, true, "")
 			jig.WaitForIngress(true)
 			usingNEG, err := gceController.BackendServiceUsingNEG(jig.GetIngressNodePorts(false))
 			Expect(err).NotTo(HaveOccurred())
@@ -282,7 +282,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			}
 
 			By("Create a basic HTTP ingress using NEG")
-			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{})
+			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{}, true, "")
 			jig.WaitForIngress(true)
 			usingNEG, err := gceController.BackendServiceUsingNEG(jig.GetIngressNodePorts(false))
 			Expect(err).NotTo(HaveOccurred())
@@ -307,7 +307,7 @@ var _ = SIGDescribe("Loadbalancing: L7", func() {
 			name := "hostname"
 			replicas := 8
 			By("Create a basic HTTP ingress using NEG")
-			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{})
+			jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "neg"), ns, map[string]string{}, map[string]string{}, true, "")
 			jig.WaitForIngress(true)
 			usingNEG, err := gceController.BackendServiceUsingNEG(jig.GetIngressNodePorts(false))
 			Expect(err).NotTo(HaveOccurred())

@@ -76,7 +76,7 @@ func etcdUpgradeGCE(target_storage, target_version string) error {
 func ingressUpgradeGCE() error {
 	// Flip glbc image from latest release image to HEAD to simulate an upgrade.
 	// Kubelet should restart glbc automatically.
-	sshResult, err := NodeExec(GetMasterHost(), "sudo sed -i -re 's/(image:)(.*)/\\1 gcr.io\\/e2e-ingress-gce\\/ingress-gce-e2e-glbc-amd64:latest/' /etc/kubernetes/manifests/glbc.manifest")
+	sshResult, err := NodeExec(GetMasterHost(), "sudo sed -i -re 's/(image:)(.*)/\\1 gcr.io\\/k8s-ingress-image-push\\/ingress-gce-e2e-glbc-amd64:latest/' /etc/kubernetes/manifests/glbc.manifest")
 	// TODO(rramkumar): Ensure glbc pod is in "Running" state before proceeding.
 	LogSSHResult(sshResult)
 	return err

@@ -92,7 +92,7 @@ func (t *IngressUpgradeTest) Setup(f *framework.Framework) {
 	jig.CreateIngress(filepath.Join(framework.IngressManifestPath, "static-ip-2"), ns.Name, map[string]string{
 		"kubernetes.io/ingress.global-static-ip-name": t.ipName,
 		"kubernetes.io/ingress.allow-http":            "false",
-	}, map[string]string{})
+	}, map[string]string{}, true, "")
 	jig.AddHTTPS("tls-secret", "ingress.test.com")
 
 	By("waiting for Ingress to come up with ip: " + t.ip)

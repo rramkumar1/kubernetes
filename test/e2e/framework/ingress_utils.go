@@ -143,7 +143,7 @@ func CreateIngressComformanceTests(jig *IngressTestJig, ns string, annotations m
 	return []IngressConformanceTests{
 		{
 			fmt.Sprintf("should create a basic HTTP ingress"),
-			func() { jig.CreateIngress(manifestPath, ns, annotations, annotations) },
+			func() { jig.CreateIngress(manifestPath, ns, annotations, annotations, true, "") },
 			fmt.Sprintf("waiting for urls on basic HTTP ingress"),
 		},
 		{
@@ -1020,41 +1020,46 @@ func GcloudComputeResourceCreate(resource, name, project string, args ...string)
 // Optional: secret.yaml, ingAnnotations
 // If ingAnnotations is specified it will overwrite any annotations in ing.yaml
 // If svcAnnotations is specified it will overwrite any annotations in svc.yaml
-func (j *IngressTestJig) CreateIngress(manifestPath, ns string, ingAnnotations map[string]string, svcAnnotations map[string]string) {
+// If name is specified it will overwrite the name in ing.yaml
+func (j *IngressTestJig) CreateIngress(manifestPath, ns string, ingAnnotations map[string]string, svcAnnotations map[string]string, createService bool, name string) {
 	var err error
-	mkpath := func(file string) string {
-		return filepath.Join(TestContext.RepoRoot, manifestPath, file)
-	}
-
-	Logf("creating replication controller")
-	RunKubectlOrDie("create", "-f", mkpath("rc.yaml"), fmt.Sprintf("--namespace=%v", ns))
-
-	Logf("creating service")
-	RunKubectlOrDie("create", "-f", mkpath("svc.yaml"), fmt.Sprintf("--namespace=%v", ns))
-	if len(svcAnnotations) > 0 {
-		svcList, err := j.Client.CoreV1().Services(ns).List(metav1.ListOptions{})
-		ExpectNoError(err)
-		for _, svc := range svcList.Items {
-			svc.Annotations = svcAnnotations
-			_, err = j.Client.CoreV1().Services(ns).Update(&svc)
-			ExpectNoError(err)
+	if createService {
+		mkpath := func(file string) string {
+			return filepath.Join(TestContext.RepoRoot, manifestPath, file)
 		}
-	}
+		Logf("creating replication controller")
+		RunKubectlOrDie("create", "-f", mkpath("rc.yaml"), fmt.Sprintf("--namespace=%v", ns))
 
-	if exists, _ := utilfile.FileExists(mkpath("secret.yaml")); exists {
-		Logf("creating secret")
-		RunKubectlOrDie("create", "-f", mkpath("secret.yaml"), fmt.Sprintf("--namespace=%v", ns))
+		Logf("creating service")
+		RunKubectlOrDie("create", "-f", mkpath("svc.yaml"), fmt.Sprintf("--namespace=%v", ns))
+		if len(svcAnnotations) > 0 {
+			svcList, err := j.Client.CoreV1().Services(ns).List(metav1.ListOptions{})
+			ExpectNoError(err)
+			for _, svc := range svcList.Items {
+				svc.Annotations = svcAnnotations
+				_, err = j.Client.CoreV1().Services(ns).Update(&svc)
+				ExpectNoError(err)
+			}
+		}
+
+		if exists, _ := utilfile.FileExists(mkpath("secret.yaml")); exists {
+			Logf("creating secret")
+			RunKubectlOrDie("create", "-f", mkpath("secret.yaml"), fmt.Sprintf("--namespace=%v", ns))
+		}
+		Logf("Parsing ingress from %v", filepath.Join(manifestPath, "ing.yaml"))
 	}
-	Logf("Parsing ingress from %v", filepath.Join(manifestPath, "ing.yaml"))
 
 	j.Ingress, err = manifest.IngressFromManifest(filepath.Join(manifestPath, "ing.yaml"))
+	if len(name) > 0 {
+		j.Ingress.Name = name
+	}
 	ExpectNoError(err)
 	j.Ingress.Namespace = ns
 	j.Ingress.Annotations = map[string]string{IngressClass: j.Class}
 	for k, v := range ingAnnotations {
 		j.Ingress.Annotations[k] = v
 	}
-	Logf(fmt.Sprintf("creating" + j.Ingress.Name + " ingress"))
+	Logf(fmt.Sprintf("creating " + j.Ingress.Name + " ingress"))
 	j.Ingress, err = j.Client.ExtensionsV1beta1().Ingresses(ns).Create(j.Ingress)
 	ExpectNoError(err)
 }
