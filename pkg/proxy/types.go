@@ -18,8 +18,10 @@ package proxy
 
 import (
 	"fmt"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/util/async"
 )
 
 // ProxyProvider is the interface provided by proxier implementations.
@@ -30,6 +32,18 @@ type ProxyProvider interface {
 	// This is expected to run as a goroutine or as the main loop of the app.
 	// It does not return.
 	SyncLoop()
+}
+
+// KernelSpaceProxier abstracts a proxier which
+// operates in kernel space (i.e iptables, ipvs, winkernel)
+type KernelSpaceProxier interface {
+	ServiceChangesMap() ServiceChangeMap
+	EndpointsChangesMap() EndpointsChangeMap
+	SyncRunner() *async.BoundedFrequencyRunner
+	SyncProxyRules()
+	IsInitialized() bool
+	SetInitialized()
+	Mu() sync.Mutex
 }
 
 // ServicePortName carries a namespace + name + portname.  This is the unique

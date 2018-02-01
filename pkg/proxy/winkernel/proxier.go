@@ -35,10 +35,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/record"
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/healthcheck"
 	"k8s.io/kubernetes/pkg/util/async"
@@ -158,7 +160,8 @@ func (ep *endpointsInfo) Cleanup() {
 // returns a new serviceInfo struct
 func newServiceInfo(svcPortName proxy.ServicePortName, port *api.ServicePort, service *api.Service) *serviceInfo {
 	onlyNodeLocalEndpoints := false
-	if apiservice.RequestsOnlyLocalTraffic(service) {
+	if utilfeature.DefaultFeatureGate.Enabled(features.ExternalTrafficLocalOnly) &&
+		apiservice.RequestsOnlyLocalTraffic(service) {
 		onlyNodeLocalEndpoints = true
 	}
 
@@ -821,6 +824,10 @@ func (proxier *Proxier) updateEndpointsMap() (result updateEndpointMapResult) {
 		}
 		changes.items = make(map[types.NamespacedName]*endpointsChange)
 	}()
+
+	if !utilfeature.DefaultFeatureGate.Enabled(features.ExternalTrafficLocalOnly) {
+		return
+	}
 
 	// TODO: If this will appear to be computationally expensive, consider
 	// computing this incrementally similarly to endpointsMap.
